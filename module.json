@@ -2,7 +2,7 @@
   "name": "MFS Organisations",
   "alias": "mfsorganisations",
   "description": "Group customers into organisations: link e-mail addresses by domain or by hand, see the organisation on every conversation, and find all conversations of an organisation.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "StackPros",
   "keywords": [],
   "active": 1,
