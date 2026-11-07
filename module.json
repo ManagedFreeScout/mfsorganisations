@@ -1,0 +1,22 @@
+{
+  "name": "MFS Organisations",
+  "alias": "mfsorganisations",
+  "description": "Group customers into organisations: link e-mail addresses by domain or by hand, see the organisation on every conversation, and find all conversations of an organisation.",
+  "version": "1.0.0",
+  "author": "StackPros",
+  "keywords": [],
+  "active": 1,
+  "order": 0,
+  "providers": [
+    "Modules\\MFSOrganisations\\Providers\\MFSOrganisationsServiceProvider"
+  ],
+  "authorUrl": "https://managedfreescout.com",
+  "aliases": {},
+  "files": [
+    "start.php"
+  ],
+  "img": "/modules/mfsorganisations/img/mfsorganisations-icon.png?v=1.0.0",
+  "requires": [],
+  "latestVersionUrl": "https://raw.githubusercontent.com/ManagedFreeScout/mfsorganisations/main/version.txt",
+  "latestVersionZipUrl": "https://github.com/ManagedFreeScout/mfsorganisations/releases/latest/download/mfsorganisations.zip"
+}

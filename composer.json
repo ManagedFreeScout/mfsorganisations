@@ -1,0 +1,27 @@
+{
+  "name": "stackpros/freescout-mfsorganisations",
+  "description": "FreeScout module — organisations: group customers by e-mail address and domain.",
+  "authors": [
+    {
+      "name": "StackPros",
+      "email": "support@stackpros.io"
+    }
+  ],
+  "type": "library",
+  "require": {
+    "php": ">=7.2"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Modules\\MFSOrganisations\\Providers\\MFSOrganisationsServiceProvider"
+      ],
+      "aliases": {}
+    }
+  },
+  "autoload": {
+    "psr-4": {
+      "Modules\\MFSOrganisations\\": ""
+    }
+  }
+}

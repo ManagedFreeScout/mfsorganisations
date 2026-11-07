@@ -1,0 +1,63 @@
+/* MFS Organisations (card #423) */
+.mfsorg-badge {
+    display: inline-block;
+    max-width: 180px;
+    padding: 1px 7px;
+    margin-right: 5px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+    vertical-align: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+a.mfsorg-badge:hover,
+a.mfsorg-badge:focus,
+.mfsorg-badge-link:hover { text-decoration: none; opacity: .85; }
+.mfsorg-badge-link { cursor: pointer; }
+.mfsorg-page .mfsorg-badge { font-size: 12px; max-width: 320px; }
+.mfsorg-sidebar-title .mfsorg-badge { font-size: 13px; max-width: 100%; }
+.mfsorg-filters .form-control { margin: 0 4px 6px 0; }
+.mfsorg-table td { vertical-align: middle !important; }
+.mfsorg-domains { color: #72808e; font-size: 12px; }
+.mfsorg-colors { padding-top: 5px; }
+.mfsorg-color {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    margin: 0 4px 4px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+}
+.mfsorg-color input { position: absolute; opacity: 0; }
+.mfsorg-color:has(input:checked) { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #333; }
+.mfsorg-inline-fields .form-control { display: inline-block; width: auto; max-width: 200px; margin: 0 4px 4px 0; }
+.mfsorg-inline-fields .mfsorg-country { max-width: 110px; }
+.mfsorg-mailbox { margin-left: 0 !important; margin-right: 12px; }
+.mfsorg-link-form .form-control { margin-right: 4px; }
+.mfsorg-link-form input[type=date] { width: 140px; }
+.mfsorg-excluded form { display: inline; }
+.mfsorg-customer-row { margin-bottom: 8px; }
+.mfsorg-conv-block { padding: 12px 15px; border-top: 1px solid #e3e8eb; }
+.mfsorg-conv-title { font-size: 11px; text-transform: uppercase; color: #93a1af; margin-bottom: 5px; }
+.mfsorg-conv-meta { list-style: none; padding: 0; margin: 6px 0 0; font-size: 12px; }
+.mfsorg-change-toggle { font-size: 12px; }
+.mfsorg-change-form { margin-top: 6px; }
+.mfsorg-change-form select { display: inline-block; width: auto; max-width: 170px; }
+.mfsorg-change-form p { font-size: 11px; margin: 4px 0 0; }
+.mfsorg-customer-org { margin-top: 6px; }
+.mfsorg-preview-table { max-width: 520px; }
+.mfsorg-preview-list { columns: 2; max-width: 620px; }
+.mfsorg-period { white-space: nowrap; margin-left: 6px; }
+.mfsorg-period .text-help { margin: 0 3px; }
+.mfsorg-alert { margin-top: 6px; padding: 5px 8px; border-radius: 3px; background: #fcf8e3; border: 1px solid #faebcc; color: #8a6d3b; font-size: 12px; white-space: normal; }
+.mfsorg-alert:before { content: "\26A0\FE0F  "; }
+.mfsorg-create-link { font-size: 12px; }
+.mfsorg-kn-badge { margin: 0 0 0 4px; vertical-align: 1px; }
+.mfsorg-kn-filter { display: inline-block; width: 190px; margin-left: 5px; vertical-align: middle; }
+.mfsorg-kn-filter-on .select2-selection { border-color: #3f8abf !important; box-shadow: 0 0 0 1px #3f8abf; }
+.mfsorg-change-form .select2-container { margin-bottom: 4px; }
+.form-inline.mfsorg-dept-form select.form-control { width: 260px; }
