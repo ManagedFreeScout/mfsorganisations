@@ -1,6 +1,7 @@
 {
   "name": "stackpros/freescout-mfsorganisations",
   "description": "FreeScout module — organisations: group customers by e-mail address and domain.",
+  "license": "AGPL-3.0-only",
   "authors": [
     {
       "name": "StackPros",
