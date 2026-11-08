@@ -9,7 +9,7 @@ class AddressLink extends Model
     protected $table = 'mfsorg_address_links';
 
     protected $fillable = [
-        'email', 'organisation_id', 'department_id', 'role', 'source', 'active', 'active_from', 'active_to',
+        'email', 'organisation_id', 'department_id', 'location_id', 'role', 'source', 'active', 'active_from', 'active_to',
     ];
 
     protected $casts = [

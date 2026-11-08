@@ -4,6 +4,7 @@ namespace Modules\MFSOrganisations\Services;
 
 use Modules\MFSOrganisations\Entities\AddressLink;
 use Modules\MFSOrganisations\Entities\Domain;
+use Modules\MFSOrganisations\Entities\Location;
 use Modules\MFSOrganisations\Entities\OrgConversation;
 use Modules\MFSOrganisations\Entities\Organisation;
 
@@ -20,6 +21,10 @@ class Webhooks
         'organisation.deleted',
         'organisation.address_linked',
         'organisation.address_removed',
+        // Card #430: own events, so other systems (and MFS Assets) can follow the location tree.
+        'organisation.location_created',
+        'organisation.location_updated',
+        'organisation.location_deleted',
     ];
 
     /** True while the backfill runs: thousands of links would mean thousands of calls. */
@@ -81,6 +86,16 @@ class Webhooks
             self::updated(Organisation::find($domain->organisation_id));
         });
 
+        Location::created(function ($loc) {
+            self::locationEvent('organisation.location_created', $loc);
+        });
+        Location::updated(function ($loc) {
+            self::locationEvent('organisation.location_updated', $loc);
+        });
+        Location::deleted(function ($loc) {
+            self::locationEvent('organisation.location_deleted', $loc);
+        });
+
         AddressLink::saved(function ($link) {
             $before = $link->getOriginal('organisation_id');
             $now = $link->organisation_id;
@@ -121,6 +136,17 @@ class Webhooks
             $send();
         } else {
             app()->terminating($send);
+        }
+    }
+
+    protected static function locationEvent($event, Location $loc)
+    {
+        $org = Organisation::find($loc->organisation_id);
+        if ($org) {
+            $data = $event == 'organisation.location_deleted'
+                ? ['id' => $loc->id, 'name' => $loc->name, 'type' => $loc->type, 'parentId' => $loc->parent_id]
+                : ApiFormat::location($loc);
+            self::fire($event, $data + ['organisation' => ApiFormat::organisationRef($org)]);
         }
     }
 

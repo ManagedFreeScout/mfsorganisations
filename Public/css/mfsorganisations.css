@@ -61,3 +61,11 @@ a.mfsorg-badge:focus,
 .mfsorg-kn-filter-on .select2-selection { border-color: #3f8abf !important; box-shadow: 0 0 0 1px #3f8abf; }
 .mfsorg-change-form .select2-container { margin-bottom: 4px; }
 .form-inline.mfsorg-dept-form select.form-control { width: 260px; }
+/* Locations tab (card #430) */
+.mfsorg-loc-form .form-inline select.form-control { width: 220px; }
+.mfsorg-loc-form .form-inline select[name="type"] { width: 110px; }
+.mfsorg-loc-more { margin-top: 6px; max-width: 640px; }
+.mfsorg-loc-more textarea { margin-bottom: 6px; }
+.mfsorg-pre { white-space: pre-line; }
+.mfsorg-link-form select[name="location_id"] { max-width: 220px; }
+.mfsorg-customer-location { margin-top: 6px; }

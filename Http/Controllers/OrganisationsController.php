@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Modules\MFSOrganisations\Entities\AddressLink;
 use Modules\MFSOrganisations\Entities\Department;
+use Modules\MFSOrganisations\Entities\Location;
 use Modules\MFSOrganisations\Entities\Domain;
 use Modules\MFSOrganisations\Entities\OrgConversation;
 use Modules\MFSOrganisations\Entities\Organisation;
@@ -147,7 +148,10 @@ class OrganisationsController extends Controller
     {
         $this->guard();
         $org = $this->findVisible($id);
-        $tab = in_array($request->input('tab'), ['addresses', 'conversations', 'departments']) ? $request->input('tab') : 'details';
+        // Other MFS modules can add a tab (MFS Assets, card #426): ['key' => ['title' => .., 'icon' => .., 'count' => n]].
+        $extra_tabs = (array) \Eventy::filter('mfsorganisations.org_tabs', [], $org);
+        $tab = in_array($request->input('tab'), ['addresses', 'conversations', 'departments', 'locations']) || isset($extra_tabs[$request->input('tab')])
+            ? $request->input('tab') : 'details';
         $user = Auth::user();
         $data = [
             'org'         => $org,
@@ -155,6 +159,8 @@ class OrganisationsController extends Controller
             'can_manage'  => Provider::canManage(),
             'is_admin'    => $user->isAdmin(),
             'departments' => Department::treeOptions($org->id),
+            'locations'   => Location::treeOptions($org->id),
+            'extra_tabs'  => $extra_tabs,
             'counts'      => [
                 'addresses'     => AddressLink::where('organisation_id', $org->id)->count(),
                 'conversations' => OrgConversation::where('organisation_id', $org->id)->count(),
@@ -336,13 +342,14 @@ class OrganisationsController extends Controller
         }
         Domain::where('organisation_id', $org->id)->delete();
         Department::where('organisation_id', $org->id)->delete();
+        Location::where('organisation_id', $org->id)->delete();
         \DB::table('mfsorg_mailboxes')->where('organisation_id', $org->id)->delete();
         $org->delete();
         \Session::flash('flash_success_floating', __('Organisation deleted.'));
         return redirect()->route('mfsorganisations.index');
     }
 
-    /** Merge this organisation into another: addresses, conversations, domains and departments move. */
+    /** Merge this organisation into another: addresses, conversations, domains, departments and locations move. */
     public function merge(Request $request, $id)
     {
         $this->guardAdmin();
@@ -356,6 +363,7 @@ class OrganisationsController extends Controller
             OrgConversation::where('organisation_id', $org->id)->update(['organisation_id' => $target->id]);
             Domain::where('organisation_id', $org->id)->update(['organisation_id' => $target->id]);
             Department::where('organisation_id', $org->id)->update(['organisation_id' => $target->id]);
+            Location::where('organisation_id', $org->id)->update(['organisation_id' => $target->id]);
             // The target keeps its own mailbox setting.
             \DB::table('mfsorg_mailboxes')->where('organisation_id', $org->id)->delete();
             $org->delete();
@@ -364,7 +372,7 @@ class OrganisationsController extends Controller
         return redirect()->to($target->url());
     }
 
-    /** Addresses tab actions: add, update (department, active, dates), remove (= exclude). */
+    /** Addresses tab actions: add, update (department, location, active, dates), remove (= exclude). */
     public function addresses(Request $request, $id)
     {
         $this->guardManage();
@@ -394,6 +402,8 @@ class OrganisationsController extends Controller
             if ($link && $action == 'update') {
                 $dept = (int) $request->input('department_id');
                 $link->department_id = ($dept && Department::where('id', $dept)->where('organisation_id', $org->id)->exists()) ? $dept : null;
+                $loc = (int) $request->input('location_id');
+                $link->location_id = ($loc && Location::where('id', $loc)->where('organisation_id', $org->id)->exists()) ? $loc : null;
                 $link->active = (bool) $request->input('active');
                 $link->active_from = $this->date($request->input('active_from'));
                 $link->active_to = $this->date($request->input('active_to'));
@@ -432,6 +442,11 @@ class OrganisationsController extends Controller
         $link = AddressLink::where('email', $email)->first();
 
         if ($value === '') {
+            // Already automatic (linked by its domain): leave it as it is, so re-saving the customer
+            // form doesn't reset the department and location set on the Addresses tab (#430).
+            if ($link && $link->source == AddressLink::SOURCE_DOMAIN) {
+                return;
+            }
             if ($link) {
                 $link->delete();
             }
@@ -441,6 +456,7 @@ class OrganisationsController extends Controller
             $link = $link ?: new AddressLink(['email' => $email]);
             $link->organisation_id = null;
             $link->department_id = null;
+            $link->location_id = null;
             $link->source = AddressLink::SOURCE_EXCLUDED;
             $link->save();
             return $previous ? Linker::unlinkConversationsOfEmail($email, $previous) : 0;
@@ -456,6 +472,7 @@ class OrganisationsController extends Controller
                 $link = $link ?: new AddressLink(['email' => $email]);
                 $link->organisation_id = $org->id;
                 $link->department_id = null;
+                $link->location_id = null;
                 $link->source = AddressLink::SOURCE_MANUAL;
                 $link->active = true;
                 $link->save();
@@ -529,6 +546,36 @@ class OrganisationsController extends Controller
             }
         }
         return redirect()->to($org->url('departments'));
+    }
+
+    /** Locations tab (card #430): add, change (name, type, parent, address, notes), delete. Mirrors departments. */
+    public function locations(Request $request, $id)
+    {
+        $this->guardManage();
+        $org = $this->findVisible($id);
+        $action = $request->input('action');
+        $name = mb_substr(trim((string) $request->input('name')), 0, 191);
+        $fields = [
+            'name'    => $name,
+            'type'    => Location::cleanType($request->input('type')),
+            'address' => mb_substr(trim((string) $request->input('address')), 0, 5000) ?: null,
+            'notes'   => mb_substr(trim((string) $request->input('notes')), 0, 20000) ?: null,
+        ];
+
+        if ($action == 'add' && $name !== '') {
+            Location::create($fields + ['organisation_id' => $org->id, 'parent_id' => Location::validParent($org->id, $request->input('parent_id'))]);
+            \Session::flash('flash_success_floating', __('Location added.'));
+        } else {
+            $loc = Location::where('id', (int) $request->input('location_id'))->where('organisation_id', $org->id)->first();
+            if ($loc && $action == 'update' && $name !== '') {
+                $loc->update($fields + ['parent_id' => Location::validParent($org->id, $request->input('parent_id'), $loc)]);
+                \Session::flash('flash_success_floating', __('Saved.'));
+            } elseif ($loc && $action == 'delete') {
+                $loc->deleteKeepingChildren();
+                \Session::flash('flash_success_floating', __('Location deleted.'));
+            }
+        }
+        return redirect()->to($org->url('locations'));
     }
 
     /** CSV of this organisation's conversations (in the agent's mailboxes). */

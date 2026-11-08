@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Modules\MFSOrganisations\Entities\AddressLink;
 use Modules\MFSOrganisations\Entities\Department;
+use Modules\MFSOrganisations\Entities\Location;
 use Modules\MFSOrganisations\Entities\Domain;
 use Modules\MFSOrganisations\Entities\OrgConversation;
 use Modules\MFSOrganisations\Entities\Organisation;
@@ -144,7 +145,7 @@ class ApiController extends Controller
         });
     }
 
-    /** GET /api/organisations/{id}?embed=departments */
+    /** GET /api/organisations/{id}?embed=departments,locations */
     public function show(Request $request, $id)
     {
         $org = $this->find($id);
@@ -152,7 +153,7 @@ class ApiController extends Controller
             return $this->notFound();
         }
         $embed = array_map('trim', explode(',', (string) $request->input('embed')));
-        return $this->json(ApiFormat::organisation($org, true, in_array('departments', $embed)));
+        return $this->json(ApiFormat::organisation($org, true, in_array('departments', $embed), in_array('locations', $embed)));
     }
 
     /** POST /api/organisations */
@@ -234,6 +235,7 @@ class ApiController extends Controller
         }
         Domain::where('organisation_id', $org->id)->delete();
         Department::where('organisation_id', $org->id)->delete();
+        Location::where('organisation_id', $org->id)->delete();
         \DB::table('mfsorg_mailboxes')->where('organisation_id', $org->id)->delete();
         $org->delete();
         return response('', 204);
@@ -449,6 +451,118 @@ class ApiController extends Controller
         }
         $dept = Department::create(['organisation_id' => $org->id, 'parent_id' => $parent ?: null, 'name' => $name]);
         return $this->created($dept->id, ['id' => $dept->id, 'name' => $dept->name, 'parentId' => $dept->parent_id]);
+    }
+
+    /* ---------- locations (card #430) ---------- */
+
+    /** GET /api/organisations/{id}/locations: the location tree, each with its path. */
+    public function locations($id)
+    {
+        $org = $this->find($id);
+        if (!$org) {
+            return $this->notFound();
+        }
+        return $this->json(['_embedded' => ['locations' => ApiFormat::locations($org->id)]]);
+    }
+
+    /** Validated location fields from a request body; $partial: only the fields present (PATCH). */
+    protected function locationFields(array $data, $partial)
+    {
+        $out = [];
+        if (!$partial || array_key_exists('name', $data)) {
+            $name = mb_substr(trim((string) ($data['name'] ?? '')), 0, 191);
+            if ($name === '') {
+                return [null, $this->error('name is required', 400, 'name')];
+            }
+            $out['name'] = $name;
+        }
+        if (!$partial || array_key_exists('type', $data)) {
+            $type = (string) ($data['type'] ?? 'site');
+            if (!in_array($type, Location::TYPES)) {
+                return [null, $this->error('type must be one of: '.implode(', ', Location::TYPES), 400, 'type')];
+            }
+            $out['type'] = $type;
+        }
+        foreach (['address' => 5000, 'notes' => 20000] as $key => $max) {
+            if (!$partial || array_key_exists($key, $data)) {
+                $out[$key] = (isset($data[$key]) && trim((string) $data[$key]) !== '') ? mb_substr(trim((string) $data[$key]), 0, $max) : null;
+            }
+        }
+        return [$out, null];
+    }
+
+    /** POST /api/organisations/{id}/locations {"name": "...", "type": "site|building|floor|room|other", "parentId": null, "address": null, "notes": null} */
+    public function addLocation(Request $request, $id)
+    {
+        if (!$this->canManage()) {
+            return $this->forbidden();
+        }
+        $org = $this->find($id);
+        if (!$org) {
+            return $this->notFound();
+        }
+        $data = $this->body($request);
+        list($fields, $error) = $this->locationFields($data, false);
+        if ($error) {
+            return $error;
+        }
+        $parent = (int) ($data['parentId'] ?? 0);
+        if ($parent && !Location::where('id', $parent)->where('organisation_id', $org->id)->exists()) {
+            return $this->error('parentId is not a location of this organisation', 400, 'parentId');
+        }
+        $loc = Location::create($fields + ['organisation_id' => $org->id, 'parent_id' => $parent ?: null]);
+        return $this->created($loc->id, ApiFormat::location($loc));
+    }
+
+    /** PATCH /api/organisations/{id}/locations/{locationId}: only the fields sent change; parentId null = top level. */
+    public function updateLocation(Request $request, $id, $location_id)
+    {
+        if (!$this->canManage()) {
+            return $this->forbidden();
+        }
+        $org = $this->find($id);
+        if (!$org) {
+            return $this->notFound();
+        }
+        $loc = Location::where('id', (int) $location_id)->where('organisation_id', $org->id)->first();
+        if (!$loc) {
+            return $this->error('Location not found', 404);
+        }
+        $data = $this->body($request);
+        list($fields, $error) = $this->locationFields($data, true);
+        if ($error) {
+            return $error;
+        }
+        if (array_key_exists('parentId', $data)) {
+            $parent = (int) $data['parentId'];
+            if ($parent && !Location::where('id', $parent)->where('organisation_id', $org->id)->exists()) {
+                return $this->error('parentId is not a location of this organisation', 400, 'parentId');
+            }
+            if ($parent && Location::validParent($org->id, $parent, $loc) != $parent) {
+                return $this->error('A location cannot be placed under itself or one of its own sub-locations', 400, 'parentId');
+            }
+            $fields['parent_id'] = $parent ?: null;
+        }
+        $loc->update($fields);
+        return $this->json(ApiFormat::location($loc->fresh()));
+    }
+
+    /** DELETE /api/organisations/{id}/locations/{locationId}: sub-locations move up one level; addresses keep their organisation. */
+    public function deleteLocation($id, $location_id)
+    {
+        if (!$this->canManage()) {
+            return $this->forbidden();
+        }
+        $org = $this->find($id);
+        if (!$org) {
+            return $this->notFound();
+        }
+        $loc = Location::where('id', (int) $location_id)->where('organisation_id', $org->id)->first();
+        if (!$loc) {
+            return $this->error('Location not found', 404);
+        }
+        $loc->deleteKeepingChildren();
+        return response('', 204);
     }
 
     /**

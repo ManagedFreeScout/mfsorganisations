@@ -127,6 +127,12 @@ The confirmation for Remove says how many conversations it unlinks. Removed addr
 
 ![The Departments tab](https://managedfreescout.com/wp-content/uploads/manuals/mfsorganisations/05-departments.png?v=9a1e6045)
 
+**Locations** (since version 1.1) are the organisation's places: sites, buildings, floors and rooms, in a tree. On the **Locations** tab you add a location with its type and its place in the tree ("Under Head office › Building A"), and under **Address and notes** a postal address and notes such as access codes or opening hours. Moving a location under one of its own children is refused. Deleting a location moves its sub-locations up one level and clears it from the addresses that used it.
+
+Give an address its location on the **Addresses** tab or on the customer's edit form. The organisation block next to a conversation then shows where that person works, for example *Location: Head office › Building A › Room 2.14*. MFS Assets uses the same locations to record where each asset is.
+
+![The Locations tab: sites, buildings, floors and rooms](https://managedfreescout.com/wp-content/uploads/manuals/mfsorganisations/14-locations.png?v=06a52ccc)
+
 ## Working with organisations
 
 Once addresses are linked, the organisation shows up wherever agents work.

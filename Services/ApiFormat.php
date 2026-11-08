@@ -4,6 +4,7 @@ namespace Modules\MFSOrganisations\Services;
 
 use Modules\MFSOrganisations\Entities\AddressLink;
 use Modules\MFSOrganisations\Entities\Department;
+use Modules\MFSOrganisations\Entities\Location;
 use Modules\MFSOrganisations\Entities\Organisation;
 
 /** How the API and the webhooks show organisations: one format for both (card #423). */
@@ -20,8 +21,8 @@ class ApiFormat
         return $date ? $date->copy()->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null;
     }
 
-    /** $full adds contact details, notes and mailboxes; $departments adds the department tree. */
-    public static function organisation(Organisation $org, $full = false, $departments = false)
+    /** $full adds contact details, notes and mailboxes; $departments / $locations add those trees. */
+    public static function organisation(Organisation $org, $full = false, $departments = false, $locations = false)
     {
         $data = [
             'id'        => $org->id,
@@ -49,7 +50,10 @@ class ApiFormat
             ];
         }
         if ($departments) {
-            $data['_embedded'] = ['departments' => self::departments($org->id)];
+            $data['_embedded']['departments'] = self::departments($org->id);
+        }
+        if ($locations) {
+            $data['_embedded']['locations'] = self::locations($org->id);
         }
         return $data;
     }
@@ -70,12 +74,40 @@ class ApiFormat
         return $out;
     }
 
+    /** Locations of an organisation in tree order, each with its path ("HQ › 2nd floor › Room 2.14"). Card #430. */
+    public static function locations($org_id)
+    {
+        $out = [];
+        $all = Location::where('organisation_id', $org_id)->get()->keyBy('id');
+        foreach (Location::treeOptions($org_id) as $id => $path) {
+            $out[] = self::location($all[$id], $path);
+        }
+        return $out;
+    }
+
+    public static function location(Location $l, $path = null)
+    {
+        return [
+            'id'             => $l->id,
+            'organisationId' => $l->organisation_id,
+            'name'           => $l->name,
+            'type'           => $l->type,
+            'parentId'       => $l->parent_id,
+            'path'           => $path ?? $l->path(),
+            'address'        => $l->address,
+            'notes'          => $l->notes,
+            'createdAt'      => self::date($l->created_at),
+            'updatedAt'      => self::date($l->updated_at),
+        ];
+    }
+
     public static function address(AddressLink $link)
     {
         return [
             'email'          => $link->email,
             'organisationId' => $link->organisation_id,
             'departmentId'   => $link->department_id,
+            'locationId'     => $link->location_id,
             'source'         => self::SOURCES[$link->source] ?? null,
             'active'         => (bool) $link->active,
             'activeFrom'     => $link->active_from ? $link->active_from->toDateString() : null,

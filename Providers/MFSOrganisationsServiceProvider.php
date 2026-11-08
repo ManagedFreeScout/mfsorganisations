@@ -337,6 +337,9 @@ class MFSOrganisationsServiceProvider extends ServiceProvider
         }
         $link = $conversation->customer_email ? AddressLink::where('email', strtolower($conversation->customer_email))->first() : null;
         $department = ($rec && $rec->department_id) ? \Modules\MFSOrganisations\Entities\Department::find($rec->department_id) : null;
+        // The address's default location (card #430), when it is a location of this conversation's organisation.
+        $location = ($org && $link && $link->location_id && $link->organisation_id == $org->id)
+            ? \Modules\MFSOrganisations\Entities\Location::where('id', $link->location_id)->where('organisation_id', $org->id)->first() : null;
         // No organisation yet and a business domain nobody has: offer to create one for it.
         $create_domain = null;
         if (!$org && $conversation->customer_email && self::canManage()) {
@@ -351,6 +354,7 @@ class MFSOrganisationsServiceProvider extends ServiceProvider
             'rec'          => $rec,
             'link'         => $link,
             'department'   => $department,
+            'location'     => $location,
             'open'         => $open,
             'create_domain' => $create_domain,
             'can_change'   => $user->can('view', $conversation),
@@ -358,7 +362,7 @@ class MFSOrganisationsServiceProvider extends ServiceProvider
         ])->render();
     }
 
-    /** Per address on the customer edit form: organisation, department, or excluded. */
+    /** Per address on the customer edit form: organisation (or excluded) and default location. */
     protected function registerCustomerHooks()
     {
         \Eventy::addAction('customer.edit.after_fields', function ($customer, $errors) {
@@ -370,9 +374,17 @@ class MFSOrganisationsServiceProvider extends ServiceProvider
                 return;
             }
             $links = AddressLink::whereIn('email', array_map('strtolower', $emails))->get()->keyBy('email');
+            // Card #430: the default location per address, chosen from its current organisation's locations.
+            $locations = [];
+            foreach ($links as $l) {
+                if ($l->organisation_id && !isset($locations[$l->organisation_id])) {
+                    $locations[$l->organisation_id] = \Modules\MFSOrganisations\Entities\Location::treeOptions($l->organisation_id);
+                }
+            }
             echo view(self::MODULE_ALIAS.'::partials.customer_fields', [
                 'emails' => $emails,
                 'links'  => $links,
+                'locations' => $locations,
                 'orgs'   => Organisation::visibleTo(Auth::user())->orderBy('name')->get(['id', 'name', 'active']),
             ])->render();
         }, 20, 2);
@@ -393,6 +405,18 @@ class MFSOrganisationsServiceProvider extends ServiceProvider
                     (string) ($row['organisation_id'] ?? ''),
                     !empty($row['move'])
                 );
+                // Card #430: default location, only when the address still belongs to the organisation
+                // whose locations were offered on the form (another organisation starts without one).
+                if (array_key_exists('location_id', $row)) {
+                    $link = AddressLink::where('email', $email)->first();
+                    if ($link && $link->organisation_id && (int) ($row['location_org'] ?? 0) == $link->organisation_id) {
+                        $loc = (int) $row['location_id'];
+                        $link->location_id = ($loc && \Modules\MFSOrganisations\Entities\Location::where('id', $loc)->where('organisation_id', $link->organisation_id)->exists()) ? $loc : null;
+                        if ($link->isDirty('location_id')) {
+                            $link->save();
+                        }
+                    }
+                }
             }
         });
 

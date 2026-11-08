@@ -14,6 +14,7 @@ Route::group(['middleware' => ['web', 'auth'], 'namespace' => 'Modules\MFSOrgani
     Route::post('/mfsorganisations/{id}/merge', 'OrganisationsController@merge')->name('mfsorganisations.merge');
     Route::post('/mfsorganisations/{id}/addresses', 'OrganisationsController@addresses')->name('mfsorganisations.addresses');
     Route::post('/mfsorganisations/{id}/departments', 'OrganisationsController@departments')->name('mfsorganisations.departments');
+    Route::post('/mfsorganisations/{id}/locations', 'OrganisationsController@locations')->name('mfsorganisations.locations');
     Route::get('/mfsorganisations/{id}/export', 'OrganisationsController@export')->name('mfsorganisations.export');
     Route::post('/mfsorganisations/conversation/{id}', 'OrganisationsController@changeConversation')->name('mfsorganisations.conversation');
 });
@@ -46,5 +47,9 @@ if (\Module::isActive('apiwebhooks') && class_exists('\Modules\ApiWebhooks\Http\
         Route::get('/organisations/{id}/conversations', 'ApiController@conversations')->where('id', '[0-9]+');
         Route::get('/organisations/{id}/departments', 'ApiController@departments')->where('id', '[0-9]+');
         Route::post('/organisations/{id}/departments', 'ApiController@addDepartment')->where('id', '[0-9]+');
+        Route::get('/organisations/{id}/locations', 'ApiController@locations')->where('id', '[0-9]+');
+        Route::post('/organisations/{id}/locations', 'ApiController@addLocation')->where('id', '[0-9]+');
+        Route::match(['put', 'patch'], '/organisations/{id}/locations/{location_id}', 'ApiController@updateLocation')->where(['id' => '[0-9]+', 'location_id' => '[0-9]+']);
+        Route::delete('/organisations/{id}/locations/{location_id}', 'ApiController@deleteLocation')->where(['id' => '[0-9]+', 'location_id' => '[0-9]+']);
     });
 }

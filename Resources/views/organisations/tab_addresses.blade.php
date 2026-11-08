@@ -18,9 +18,10 @@
                 <th>{{ __('Customer') }}</th>
                 <th>{{ __('Linked') }}</th>
                 @if ($can_manage)
-                    <th>{{ __('Department and link period') }}</th>
+                    <th>{{ __('Department, location and link period') }}</th>
                 @else
                     <th>{{ __('Department') }}</th>
+                    <th>{{ __('Location') }}</th>
                     <th>{{ __('Active') }}</th>
                 @endif
             </tr>
@@ -37,12 +38,20 @@
                             <form method="POST" action="{{ route('mfsorganisations.addresses', ['id' => $org->id]) }}" class="form-inline mfsorg-link-form">
                                 {{ csrf_field() }}
                                 <input type="hidden" name="link_id" value="{{ $link->id }}">
-                                <select name="department_id" class="form-control input-sm">
+                                <select name="department_id" class="form-control input-sm" aria-label="{{ __('Department') }}">
                                     <option value="">–</option>
                                     @foreach ($departments as $dept_id => $dept_name)
                                         <option value="{{ $dept_id }}" @if ($link->department_id == $dept_id) selected @endif>{{ $dept_name }}</option>
                                     @endforeach
                                 </select>
+                                @if (count($locations))
+                                    <select name="location_id" class="form-control input-sm" aria-label="{{ __('Location') }}" title="{{ __('Default location (where this person usually works)') }}">
+                                        <option value="">{{ __('No location') }}</option>
+                                        @foreach ($locations as $loc_id => $loc_name)
+                                            <option value="{{ $loc_id }}" @if ($link->location_id == $loc_id) selected @endif>{{ $loc_name }}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
                                 <label class="checkbox-inline"><input type="checkbox" name="active" value="1" @if ($link->active) checked @endif> {{ __('Active') }}</label>
                                 <span class="mfsorg-period">
                                     <span class="text-help">{{ __('Linked from') }}</span>
@@ -56,6 +65,7 @@
                         </td>
                     @else
                         <td>{{ $departments[$link->department_id] ?? '' }}</td>
+                        <td>{{ $locations[$link->location_id] ?? '' }}</td>
                         <td>@if ($link->active) {{ __('Yes') }} @else {{ __('No') }} @endif
                             @if ($link->active_from || $link->active_to)<small class="text-help">{{ __('Linked') }} {{ $link->active_from ? $link->active_from->toDateString() : '…' }} – {{ $link->active_to ? $link->active_to->toDateString() : '…' }}</small>@endif
                         </td>

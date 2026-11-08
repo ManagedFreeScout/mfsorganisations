@@ -8,6 +8,7 @@
         <ul class="mfsorg-conv-meta">
             <li><a href="{{ $org->url() }}" class="text-help">{{ __('Organisation page') }}</a></li>
             @if ($department)<li>{{ __('Department') }}: {{ $department->name }}</li>@endif
+            @if ($location)<li>{{ __('Location') }}: {{ $location->path() }}</li>@endif
             @if ($rec && $rec->source == \Modules\MFSOrganisations\Entities\OrgConversation::SOURCE_AGENT)
                 <li class="text-help">{{ __('Set by hand') }}</li>
             @endif

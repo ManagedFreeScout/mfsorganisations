@@ -62,6 +62,17 @@ All paths are under `/api`. "Manage" means the key needs the permission to manag
 
 Creating, changing and linking a domain answer with the organisation plus a `_report`: how many existing addresses were linked, how many conversations were added, and which domains were refused and why.
 
+**Locations** (since version 1.1): an organisation's sites, buildings, floors and rooms, as a tree.
+
+| Method and path | What it does | Access |
+| --- | --- | --- |
+| `GET /api/organisations/{id}/locations` | All locations of the organisation, in tree order, each with its `path` | Read |
+| `POST /api/organisations/{id}/locations` | Add a location: `{"name": "Building A", "type": "building", "parentId": 1, "address": null, "notes": null}` | Manage |
+| `PUT` / `PATCH /api/organisations/{id}/locations/{locationId}` | Change a location; only the fields sent change. `parentId: null` moves it to the top level; a parent inside its own sub-tree is refused | Manage |
+| `DELETE /api/organisations/{id}/locations/{locationId}` | Delete it: sub-locations move up one level, addresses keep their organisation and lose this location | Manage |
+
+`type` is one of `site` (default), `building`, `floor`, `room`, `other`. A location answers with `id`, `organisationId`, `name`, `type`, `parentId`, `path` ("Head office › Building A"), `address`, `notes`, `createdAt` and `updatedAt`. `GET /api/organisations/{id}?embed=locations` (or `embed=departments,locations`) includes them in the organisation. Addresses carry a read-only `locationId`; agents set it in FreeScout.
+
 ## The organisation object
 
 The same fields are used to read, create and change, and in the webhooks. In a list only the first group is returned; a single organisation has all fields.
@@ -173,6 +184,8 @@ A few things to know:
 - One change in the screens or one API call sends one `created` or `updated`, sent after the request is complete, so it always holds the final state.
 - Adding a domain sends an `address_linked` for each existing address it links. The backfill sends no webhooks.
 - Setting an address back to "Automatic" on the customer form sends `address_removed` followed by `address_linked`.
+
+**Location events** (since version 1.1): `organisation.location_created`, `organisation.location_updated` (also a move in the tree) and `organisation.location_deleted`. The first two send the location object; the delete sends `id`, `name`, `type` and `parentId`. All three add `organisation` with the organisation's `id` and `name`.
 
 **Organisation on conversation webhooks.** FreeScout's own conversation webhooks (`convo.created`, `convo.status` and the others) get one extra field, so a receiver can route by organisation without calling the API:
 

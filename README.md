@@ -1,12 +1,12 @@
 # MFS Organisations
 
-**Version 1.0.1** · FreeScout module by [Managed FreeScout](https://managedfreescout.com) (StackPros)
+**Version 1.1.0** · FreeScout module by [Managed FreeScout](https://managedfreescout.com) (StackPros)
 
 Group your FreeScout customers into organisations. Link e-mail addresses to an organisation by domain
 (everyone at acme.com) or by hand, and every new conversation from those addresses is placed under that
 organisation automatically.
 
-- An organisation page with details, domains, addresses, departments and all its conversations
+- An organisation page with details, domains, addresses, departments, locations and all its conversations
 - A coloured badge in the conversation list and on Kanban cards; click it for all conversations of that organisation
 - An organisation block next to every conversation, with an optional alert note
 - Search, Kanban and Workflows filters and conditions on organisation
@@ -48,5 +48,6 @@ the `mfsorganisations.zip` asset of the latest GitHub release).
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 1.1.0 | 2026-11-08 | Locations: sites, buildings, floors and rooms per organisation, in a tree; a location per address, shown in the organisation block; REST API endpoints and three location webhooks. Other MFS modules (MFS Assets) can add a tab to the organisation page. |
 | 1.0.1 | 2026-11-07 | The module includes its licence (AGPL-3.0) as a LICENSE file. No functional changes. |
 | 1.0.0 | 2026-11-07 | First release: organisations with domains, addresses and departments; badges in the list and on Kanban; organisation block with alert note; search, Kanban and Workflows support; create an organisation from a conversation; REST API and five organisation webhooks. |
